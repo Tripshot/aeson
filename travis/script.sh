@@ -24,4 +24,8 @@ case $BUILD in
     stack install hlint-2.0.5 --stack-yaml stack-lts8.yaml --system-ghc --no-terminal
     make lint
     ;;
+  weeder)
+    stack setup --resolver lts-8
+    wget https://raw.github.com/ndmitchell/weeder/master/misc/travis.sh -O - --quiet | sh -s
+    ;;
 esac
