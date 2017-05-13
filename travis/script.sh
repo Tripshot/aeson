@@ -25,7 +25,8 @@ case $BUILD in
     make lint
     ;;
   weeder)
-    stack setup --resolver lts-8
+    stack setup --resolver lts-8 --no-terminal
+    stack install Cabal --resolver lts-8 --no-terminal
     wget https://raw.github.com/ndmitchell/weeder/master/misc/travis.sh -O - --quiet | sh -s
     ;;
 esac
