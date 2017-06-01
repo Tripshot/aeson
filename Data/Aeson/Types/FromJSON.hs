@@ -103,7 +103,7 @@ import Data.Scientific (Scientific, base10Exponent)
 import Data.Tagged (Tagged(..))
 import Data.Text (Text, pack, unpack)
 import Data.These (These (..))
-import Data.Time (Day, DiffTime, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime)
+import Data.Time (Day, DiffTime, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime, fromGregorianValid)
 import Data.Time.Calendar.Compat (CalendarDiffDays (..), DayOfWeek (..))
 import Data.Time.LocalTime.Compat (CalendarDiffTime (..))
 import Data.Time.Clock.System.Compat (SystemTime (..))
@@ -118,6 +118,7 @@ import Foreign.C.Types (CTime (..))
 import GHC.Generics
 import Numeric.Natural (Natural)
 import Text.ParserCombinators.ReadP (readP_to_S)
+import Text.Read (readMaybe)
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Aeson.Parser.Time as Time
 import qualified Data.Attoparsec.ByteString.Char8 as A (endOfInput, parseOnly, scientific)
@@ -2026,12 +2027,17 @@ instance (PM.Prim a,FromJSON a) => FromJSON (PM.PrimArray a) where
 -- time
 -------------------------------------------------------------------------------
 
+-- Parse the object form (year, month, day) or the string form ("YYYY-MM-DD")
 instance FromJSON Day where
-    parseJSON = withText "Day" (Time.run Time.day)
-
-instance FromJSONKey Day where
-    fromJSONKey = FromJSONKeyTextParser (Time.run Time.day)
-
+    parseJSON z = asObj z <|> asStr z
+        where asObj = withObject "Day" $ \v -> do
+                        (y, m, d) <- (,,) <$> v .: "year" <*> v .: "month" <*> v .: "day"
+                        case fromGregorianValid y m d of
+                          Nothing -> fail $ "invalid date (" ++ show v ++ ")"
+                          Just day -> return day
+              asStr = withText "Day" $ \v -> case readMaybe (unpack v) of
+                                               Just a -> return a
+                                               Nothing -> fail $ "invalid date (" ++ unpack v ++ ")"
 
 instance FromJSON TimeOfDay where
     parseJSON = withText "TimeOfDay" (Time.run Time.timeOfDay)
