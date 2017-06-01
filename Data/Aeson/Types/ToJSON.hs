@@ -84,7 +84,7 @@ import Data.Ratio (Ratio, denominator, numerator)
 import Data.Scientific (Scientific)
 import Data.Tagged (Tagged(..))
 import Data.Text (Text, pack)
-import Data.Time (Day, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime)
+import Data.Time (Day, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime, toGregorian)
 import Data.Time.Format (FormatTime, formatTime)
 import Data.Time.Locale.Compat (defaultTimeLocale)
 import Data.Vector (Vector)
@@ -1970,12 +1970,8 @@ formatMillis = take 3 . formatTime defaultTimeLocale "%q"
 -------------------------------------------------------------------------------
 
 instance ToJSON Day where
-    toJSON     = stringEncoding . E.day
-    toEncoding = E.day
-
-instance ToJSONKey Day where
-    toJSONKey = toJSONKeyTextEnc E.day
-
+    toJSON day = let (y, m, d) = toGregorian day
+                 in object [ "year" .= y, "month" .= m, "day" .= d ]
 
 instance ToJSON TimeOfDay where
     toJSON     = stringEncoding . E.timeOfDay
@@ -2001,12 +1997,9 @@ instance ToJSONKey ZonedTime where
     toJSONKey = toJSONKeyTextEnc E.zonedTime
 
 
+-- always show decimal point and fractional second, 0-padded to twelve chars
 instance ToJSON UTCTime where
-    toJSON     = stringEncoding . E.utcTime
-    toEncoding = E.utcTime
-
-instance ToJSONKey UTCTime where
-    toJSONKey = toJSONKeyTextEnc E.utcTime
+    toJSON = String . pack . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.%qZ"
 
 -- | Encode something t a JSON string.
 stringEncoding :: Encoding' Text -> Value

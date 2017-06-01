@@ -94,7 +94,7 @@ import Data.Ratio ((%), Ratio)
 import Data.Scientific (Scientific)
 import Data.Tagged (Tagged(..))
 import Data.Text (Text, pack, unpack)
-import Data.Time (Day, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime)
+import Data.Time (Day, LocalTime, NominalDiffTime, TimeOfDay, UTCTime, ZonedTime, fromGregorianValid)
 import Data.Time.Format (parseTime)
 import Data.Time.Locale.Compat (defaultTimeLocale)
 import Data.Traversable as Tr (sequence)
@@ -105,6 +105,7 @@ import Foreign.Storable (Storable)
 import GHC.Generics
 import Numeric.Natural (Natural)
 import Text.ParserCombinators.ReadP (readP_to_S)
+import Text.Read (readMaybe)
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Aeson.Parser.Time as Time
 import qualified Data.Attoparsec.ByteString.Char8 as A (endOfInput, parseOnly, scientific)
@@ -1564,12 +1565,17 @@ instance FromJSON DotNetTime where
 -- time
 -------------------------------------------------------------------------------
 
+-- Parse the object form (year, month, day) or the string form ("YYYY-MM-DD")
 instance FromJSON Day where
-    parseJSON = withText "Day" (Time.run Time.day)
-
-instance FromJSONKey Day where
-    fromJSONKey = FromJSONKeyTextParser (Time.run Time.day)
-
+    parseJSON z = asObj z <|> asStr z
+        where asObj = withObject "Day" $ \v -> do
+                        (y, m, d) <- (,,) <$> v .: "year" <*> v .: "month" <*> v .: "day"
+                        case fromGregorianValid y m d of
+                          Nothing -> fail $ "invalid date (" ++ show v ++ ")"
+                          Just day -> return day
+              asStr = withText "Day" $ \v -> case readMaybe (unpack v) of
+                                               Just a -> return a
+                                               Nothing -> fail $ "invalid date (" ++ unpack v ++ ")"
 
 instance FromJSON TimeOfDay where
     parseJSON = withText "TimeOfDay" (Time.run Time.timeOfDay)
