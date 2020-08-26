@@ -15,14 +15,13 @@ Master [git repository](http://github.com/bos/aeson):
 
 * `git clone git://github.com/bos/aeson.git`
 
-There's also a [Mercurial mirror](http://bitbucket.org/bos/aeson):
+See what's changed in recent (and upcoming) releases:
 
-* `hg clone http://bitbucket.org/bos/aeson`
+* https://github.com/bos/aeson/blob/master/changelog.md
 
 (You can create and contribute changes using either git or Mercurial.)
 
 
 # Authors
 
-This library is written and maintained by Bryan O'Sullivan,
-<bos@serpentine.com>.
+This library was originally written by Bryan O'Sullivan.

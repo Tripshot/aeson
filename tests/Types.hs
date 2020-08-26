@@ -4,20 +4,28 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Types where
+module Types (module Types) where
 
-import Prelude ()
 import Prelude.Compat
 
+import Math.NumberTheory.Logarithms (intLog2)
+import Control.Applicative ((<$>))
 import Data.Data
 import Data.Functor.Compose (Compose (..))
 import Data.Functor.Identity (Identity (..))
+import Data.Hashable (Hashable (..))
+import Data.Semigroup (Option)
 import Data.Text
+import Data.Time (Day (..), fromGregorian)
 import GHC.Generics
-import Test.QuickCheck (Property, counterexample)
+import Test.QuickCheck (Arbitrary (..), Property, counterexample, scale)
 import qualified Data.Map as Map
+import Data.Aeson
+import Data.Aeson.Types
 
 type I = Identity
 type Compose3  f g h = Compose (Compose f g) h
@@ -98,6 +106,10 @@ deriving instance Data (GADT String)
 deriving instance Eq   (GADT a)
 deriving instance Show (GADT a)
 
+newtype MaybeField = MaybeField { maybeField :: Maybe Int }
+newtype OptionField = OptionField { optionField :: Option Int }
+  deriving (Eq, Show)
+
 deriving instance Generic Foo
 deriving instance Generic UFoo
 deriving instance Generic OneConstructor
@@ -110,8 +122,51 @@ deriving instance Generic (SomeType a)
 #if __GLASGOW_HASKELL__ >= 706
 deriving instance Generic1 SomeType
 #endif
+deriving instance Generic OptionField
 deriving instance Generic EitherTextInt
 
 failure :: Show a => String -> String -> a -> Property
 failure func msg v = counterexample
                      (func ++ " failed: " ++ msg ++ ", " ++ show v) False
+
+newtype BCEDay = BCEDay Day
+  deriving (Eq, Show)
+
+zeroDay :: Day
+zeroDay = fromGregorian 0 0 0
+
+instance Arbitrary BCEDay where
+    arbitrary = fmap (BCEDay . ModifiedJulianDay . (+ toModifiedJulianDay zeroDay)) arbitrary
+
+instance ToJSON BCEDay where
+    toJSON (BCEDay d)     = toJSON d
+    toEncoding (BCEDay d) = toEncoding d
+
+instance FromJSON BCEDay where
+    parseJSON = fmap BCEDay . parseJSON
+
+-- | Scale the size of Arbitrary with ''
+newtype LogScaled a = LogScaled { getLogScaled :: a }
+  deriving (Eq, Ord, Show)
+
+instance Hashable a => Hashable (LogScaled a) where
+    hashWithSalt salt (LogScaled a) = hashWithSalt salt a
+
+instance Arbitrary a => Arbitrary (LogScaled a) where
+    arbitrary = LogScaled <$> scale (\x -> intLog2 $ x + 1) arbitrary
+    shrink = fmap LogScaled . shrink . getLogScaled
+
+instance ToJSON a => ToJSON (LogScaled a) where
+    toJSON (LogScaled d)     = toJSON d
+    toEncoding (LogScaled d) = toEncoding d
+
+instance FromJSON a => FromJSON (LogScaled a) where
+    parseJSON = fmap LogScaled . parseJSON
+
+instance (ToJSONKey a) => ToJSONKey (LogScaled a) where
+    toJSONKey = contramapToJSONKeyFunction getLogScaled toJSONKey
+    toJSONKeyList = contramapToJSONKeyFunction (fmap getLogScaled) toJSONKeyList
+
+instance (FromJSONKey a) => FromJSONKey (LogScaled a) where
+    fromJSONKey = fmap LogScaled fromJSONKey
+    fromJSONKeyList = coerceFromJSONKeyFunction (fromJSONKeyList :: FromJSONKeyFunction [a])

@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+
 module Data.Aeson.Encoding.Internal
     (
     -- * Encoding
@@ -13,6 +15,8 @@ module Data.Aeson.Encoding.Internal
     , Series (..)
     , pairs
     , pair
+    , pairStr
+    , pair'
     -- * Predicates
     , nullEncoding
     -- * Encoding constructors
@@ -53,7 +57,6 @@ module Data.Aeson.Encoding.Internal
     , comma, colon, openBracket, closeBracket, openCurly, closeCurly
     ) where
 
-import Prelude ()
 import Prelude.Compat
 
 import Data.Aeson.Types.Internal (Value)
@@ -79,7 +82,7 @@ newtype Encoding' tag = Encoding {
       -- ^ Acquire the underlying bytestring builder.
     } deriving (Typeable)
 
--- | Often used synonnym for 'Encoding''.
+-- | Often used synonym for 'Encoding''.
 type Encoding = Encoding' Value
 
 -- | Make Encoding from Builder.
@@ -122,7 +125,15 @@ data Series = Empty
             deriving (Typeable)
 
 pair :: Text -> Encoding -> Series
-pair name val = Value $ retagEncoding $ text name >< colon >< val
+pair name val = pair' (text name) val
+{-# INLINE pair #-}
+
+pairStr :: String -> Encoding -> Series
+pairStr name val = pair' (string name) val
+{-# INLINE pairStr #-}
+
+pair' :: Encoding' Text -> Encoding -> Series
+pair' name val = Value $ retagEncoding $ retagEncoding name >< colon >< val
 
 instance Semigroup Series where
     Empty   <> a       = a

@@ -1,5 +1,229 @@
 For the latest version of this document, please see [https://github.com/bos/aeson/blob/master/changelog.md](https://github.com/bos/aeson/blob/master/changelog.md).
 
+### 1.4.6.0
+
+* Provide a clearer error message when a required tagKey for a constructor is missing, thanks to Guru Devanla.
+  The error message now looks like this: `Error in $: parsing Types.SomeType failed, expected Object with key "tag" containing one of ["nullary","unary","product","record","list"], key "tag" not found`
+
+* Add `formatPath` and `formatRelativePath` functions to turn a `JSONPath` into a `String`, thanks to Robbie McMichael
+
+
+### 1.4.5.0
+
+* Expose `(<?>)`, `JSONPath` and `JSONPathElement(..)` from `Data.Aeson.Types`. Previously only available through internal modules. Thanks to Luke Clifton.
+
+* Support for base-compat 0.11, thanks to Ryan Scott.
+
+* Travis build for GHC 8.8, thanks to Oleg Grenrus.
+
+### 1.4.4.0
+
+**New features**:
+
+* Adds a parameterized parser `jsonWith` that can be used to choose how to handle duplicate keys in objects, thanks to Xia Li-Yao.
+
+* Add generic implementations of `FromJSONKey` and `ToJSONKey`, thanks to Xia Li-Yao. Example:
+
+```haskell
+data Foo = Bar
+  deriving Generic
+
+opts :: JSONKeyOptions
+opts = defaultJSONKeyOptions { keyModifier = toLower }
+
+instance ToJSONKey Foo where
+  toJSONKey = genericToJSONKey opts
+
+instance FromJSONKey Foo where
+  fromJSONKey = genericFromJSONKey opts
+```
+
+**Minor**:
+* aeson now uses `time-compat` instead of `time-locale-compat`, thanks to Oleg Grenrus.
+* Prepare for `MonadFail` breakages in GHC 8.8, thanks to Oleg Grenrus.
+* Require `bytestring >= 0.10.8.1` for newer GHCs to avoid build failures, thanks to Oleg Grenrus.
+* Support `primitive 0.7.*`, thanks to Adam Bergmark.
+* Allow `semigroups 0.19.*` and `hashable 1.3.*`, thanks to Oleg Grenrus.
+* Fix a typo in the error message when parsing `NonEmpty`, thanks to Colin Woodbury.
+* Document surprising behavior when using `omitNothingFields` with type variables, thanks to Xia Li-Yao.
+
+**Internal changes**:
+* Code cleanup by Oleg Grenrus
+* Fix dependencies of the benchmarks on older GHC's, thanks to Xia Li-Yao.
+
+### 1.4.3.0
+* Improve error messages for FromJSON in existing instances and GHC Generic implementation. Thanks to Xia Li-Yao & Igor Pashev.
+* Tweak error-reporting combinators and their documentation. Thanks to Xia Li-Yao.
+  * `typeMismatch` is now about comparing JSON types (i.e., the expected and actual names of the Value constructor).
+  * `withObject` and other `with*` combinators now also mention the JSON types they expect
+  * New `unexpected` and `prependFailure` combinators.
+* Add `Contravariant` `ToJSONKeyFunction` instance. Thanks to Oleg Grenrus.
+* Add `KeyValue` instance for `Object`. Thanks to Robert Hensing.
+* Improve performance when parsing certain large numbers, thanks to Oleg Grenrus.
+* Add `Data.Aeson.QQ.Simple` - A limited version of aeson-qq. Thanks to Oleg Grenrus.
+* Exposes internal helper functions like `<?>`, `JSONPath`, and `parseIndexedJSON` from `Data.Aeson` module. Thanks to Abid Uzair.
+* Better error messages when there are syntax errors parsing objects and arrays. Thanks to Fintan Halpenny.
+* Support building with `th-abstraction-0.3.0.0` or later. Thanks to Ryan Scott.
+
+### 1.4.2.0
+
+* Add `Data.Aeson.QQ.Simple` which is a simpler version of the `aeson-qq` package, it does not support interpolation, thanks to Oleg Grenrus.
+* Add `Contravariant ToJSONKeyFunction` instance, thanks to Oleg Grenrus.
+* Add `KeyValue Object` instance, thanks to Robert Hensing
+* Improved performance when parsing large numbers, thanks to Oleg Grenrus.
+
+### 1.4.1.0
+
+* Optimizations of generics, thanks to Rémy Oudompheng, here are some numbers for GHC 8.4:
+  * Compilation time: G/BigProduct.hs is 25% faster, G/BigRecord.hs is 2x faster.
+  * Runtime performance: BigRecord/toJSON/generic and BigProduct/encode/generic are more than 2x faster.
+* Added To/FromJSON instances for `Void` and Generics's `V1`, thanks to Will Yager
+* Added To/FromJSON instances for `primitive`'s `Array`, `SmallArray`, `PrimArray` and `UnliftedArray`, thanks to Andrew Thad.
+* Fixes handling of `UTCTime` wrt. leap seconds , thanks to Adam Schønemann
+* Warning and documentation fixes thanks to tom-bop, Gabor Greif, Ian Jeffries, and Mateusz Curyło.
+
+## 1.4.0.0
+
+This release introduces bounds on the size of `Scientific` numbers when they are converted to other arbitrary precision types that do not represent them efficiently in memory.
+
+This means that trying to decode a number such as `1e1000000000` into an `Integer` will now fail instead of using a lot of memory. If you need to represent large numbers you can add a newtype (preferably over `Scientific`) and providing a parser using `withScientific`.
+
+The following instances are affected by this:
+* `FromJSON Natural`
+* `FromJSONKey Natural`
+* `FromJSON Integer`
+* `FromJSONKey Integer`
+* `FromJSON NominalDiffTime`
+
+For the same reasons the following instances & functions have been removed:
+* Remove `FromJSON Data.Attoparsec.Number` instance. Note that `Data.Attoparsec.Number` is deprecated.
+* Remove deprecated `withNumber`, use `withScientific` instead.
+
+Finally, encoding integral values with large exponents now uses scientific notation, this saves space for large numbers.
+
+#### 1.3.1.1
+
+* Catch 0 denominators when parsing Ratio
+
+### 1.3.1.0
+
+* Fix bug in generically derived `FromJSON` instances that are using `unwrapUnaryRecords`, thanks to Xia Li-yao
+* Allow base-compat 0.10.*, thanks to Oleg Grenrus
+
+## 1.3.0.0
+
+Breaking changes:
+* `GKeyValue` has been renamed to `KeyValuePair`, thanks to Xia Li-yao
+* Removed unused `FromJSON` constraint in `withEmbeddedJson`, thanks to Tristan Seligmann
+
+Other improvements:
+* Optimizations of TH toEncoding, thanks to Xia Li-yao
+* Optimizations of hex decoding when using the default/pure unescape implementation, thanks to Xia Li-yao
+* Improved error message on `Day` parse failures, thanks to Gershom Bazerman
+* Add `encodeFile` as well as `decodeFile*` variants, thanks to Markus Hauck
+* Documentation	fixes, thanks to Lennart Spitzner
+* CPP cleanup, thanks to Ryan Scott
+
+### 1.2.4.0
+
+* Add `Ord` instance for `JSONPathElement`, thanks to Simon Hengel.
+
+
+### 1.2.3.0
+
+* Added `withEmbeddedJSON` to help parse JSON embedded inside a JSON string, thanks to Jesse Kempf.
+* Memory usage improvements to the default (pure) parser, thanks to Jonathan Paugh. Also thanks to Neil Mitchell & Oleg Grenrus for contributing a benchmark.
+* `omitNothingFields` now works for the `Option` newtype, thanks to Xia Li-yao.
+* Some documentation fixes, thanks to Jonathan Paug & Philippe Crama.
+
+### 1.2.2.0
+
+* Add `FromJSON` and `ToJSON` instances for
+  * `DiffTime`, thanks to Víctor López Juan.
+  * `CTime`, thanks to Daniel Díaz.
+* Fix handling of fractions when parsing Natural, thanks to Yuriy Syrovetskiy.
+* Change text in error messages for Integral types to make them follow the common pattern, thanks to Yuriy Syrovetskiy.
+* Add missing `INCOHERENT` pragma for `RecordToPair`, thanks to Xia Li-yao.
+* Everything related to `Options` is now exported from `Data.Aeson`, thanks to Xia Li-yao.
+* Optimizations to not escape text in clear cases, thanks to Oleg Grenrus.
+* Some documentation fixes, thanks to Phil de Joux & Xia Li-yao.
+
+### 1.2.1.0
+
+* Add `parserThrowError` and `parserCatchError` combinators, thanks to Oleg Grenrus.
+
+* Add `Generic` instance for `Value`, thanks to Xia Li-yao.
+
+* Fix a mistake in the 1.2.0.0 changelog, the `cffi` flag is disabled by default! Thanks to dbaynard.
+
+## 1.2.0.0
+
+* `tagSingleConstructors`, an option to encode single-constructor types as tagged sums was added to `Options`. It is disabled by default for backward compatibility.
+
+* The `cffi` flag is now turned off (`False`) by default, this means C FFI code is no longer used by default. You can flip the flag to get C implementation.
+
+* The `Options` constructor is no longer exposed to prevent new options from being breaking changes, use `defaultOptions` instead.
+
+* The contents of `GToJSON` and `GToEncoding` are no longer exposed.
+
+* Some INLINE pragmas were removed to avoid GHC running out of simplifier ticks.
+
+### 1.1.2.0
+
+* Fix an accidental change in the format of `deriveJSON`. Thanks to Xia Li-yao!
+
+* Documentation improvements regarding `ToJSON`, `FromJSON`, and `SumEncoding`. Thanks to Xia Li-yao and Lennart Spitzner!
+
+### 1.1.1.0
+
+* Added a pure implementation of the C FFI code, the C FFI code. If you wish to use the pure haskell version set the `cffi` flag to `False`. This should make aeson compile when C isn't available, such as for GHCJS. Thanks to James Parker & Marcin Tolysz!
+
+* Using the `fast` flag can no longer cause a test case to fail. As far as we know this didn't affect any users of the library itself. Thanks to Xia Li-yao!
+
+## 1.1.0.0
+
+* Added instances for `UUID`.
+
+* The operators for parsing fields now have named aliases:
+  -  `.:` => `parseField`
+  -  `.:?` => `parseFieldMaybe`
+  -  `.:!` => `parseFieldMaybe'`
+  - These functions now also have variants with explicit parser functions: `explicitParseField`, `explicitParseFieldMaybe`, "explicitParseFieldMaybe'`
+Thanks to Oleg Grenrus.
+
+* `ToJSONKey (Identity a)` and `FromJSONKey (Identity a)` no longer require the unnecessary `FromJSON a` constraint. Thanks to Oleg Grenrus.
+
+* Added `Data.Aeson.Encoding.pair'` which is a more general version of `Data.Aeson.Encoding.pair`. Thanks to Andrew Martin.
+
+* `Day`s BCE are properly encoded and `+` is now a valid prefix for `Day`s CE. Thanks to Matt Parsons.
+
+* Some commonly used ToJSON instances are now specialized in order to improve compile time. Thanks to Bartosz Nitka.
+
+
+[JSONTestSuite](https://github.com/nst/JSONTestSuite) cleanups, all
+motivated by tighter RFC 7159 compliance:
+
+* The parser now rejects numbers for which
+  [the integer portion contains a leading zero](https://github.com/bos/aeson/commit/3fb7c155f2255482b1b9566ec5c1eaf9895d630e).
+* The parser now rejects numbers for which
+  [a decimal point is not followed by at least one digit](https://github.com/bos/aeson/commit/ecfca35a45286dbe2bbaf5f62354be393bc59b66),
+* The parser now rejects documents that contain [whitespace outside the
+  set {space, newline, carriage return, tab}](https://github.com/bos/aeson/commit/8ef622c2ad8d4a109884e17c2792238a2a320e44).
+
+Over 90% of JSONTestSuite tests currently pass. The remainder can be
+categorised as follows:
+
+* The string parser is strict with Unicode compliance where the RFC
+  leaves room for implementation-defined behaviour (tests prefixed
+  with "`i_string_`". (This is necessary because the `text` library
+  cannot accommodate invalid Unicode.)
+
+* The parser does not (and will not) support UTF-16, UTF-32, or byte
+  order marks (BOM).
+* The parser accepts unescaped control characters, even though the RFC
+  states that control characters must be escaped. (This may change at
+  some point, but doesn't seem important.)
+
 #### 1.0.2.1
 
 * Fixes a regression where a bunch of valid characters caused an

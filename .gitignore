@@ -1,11 +1,21 @@
 dist
+dist-newstyle
+.ghc.environment.*
 .cabal-sandbox/
 cabal.sandbox.config
 .stack-work/
+.stack-work-bench/
+*.yaml.lock
 
 *.o
 *.hi
 *.nix
+*.swp
+.\#*
+\#*
+
+# Emacs backup files
+*~
 
 benchmarks/AesonEncode
 

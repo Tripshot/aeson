@@ -1,6 +1,7 @@
-module Options where
+{-# LANGUAGE NoImplicitPrelude #-}
 
-import Prelude ()
+module Options (module Options) where
+
 import Prelude.Compat
 
 import Data.Aeson.Types
@@ -42,3 +43,15 @@ optsUntaggedValue :: Options
 optsUntaggedValue = optsDefault
     { sumEncoding = UntaggedValue
     }
+
+optsTagSingleConstructors :: Options
+optsTagSingleConstructors = optsDefault
+                            { tagSingleConstructors = True
+                            , allNullaryToStringTag = False
+                            }
+
+optsOptionField :: Options
+optsOptionField = optsDefault
+                  { fieldLabelModifier = const "field"
+                  , omitNothingFields = True
+                  }

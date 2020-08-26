@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:      Data.Aeson.Types
 -- Copyright:   (c) 2011-2016 Bryan O'Sullivan
@@ -25,6 +26,7 @@ module Data.Aeson.Types
     -- * Convenience types and functions
     , DotNetTime(..)
     , typeMismatch
+    , unexpected
     -- * Type conversion
     , Parser
     , Result(..)
@@ -36,6 +38,9 @@ module Data.Aeson.Types
     , ToJSON(..)
     , KeyValue(..)
     , modifyFailure
+    , prependFailure
+    , parserThrowError
+    , parserCatchError
 
     -- ** Keys for maps
     , ToJSONKey(..)
@@ -47,6 +52,12 @@ module Data.Aeson.Types
     , fromJSONKeyCoerce
     , coerceFromJSONKeyFunction
     , mapFromJSONKeyFunction
+
+    -- *** Generic keys
+    , GToJSONKey()
+    , genericToJSONKey
+    , GFromJSONKey()
+    , genericFromJSONKey
 
     -- ** Liftings to unary and binary type constructors
     , FromJSON1(..)
@@ -63,8 +74,8 @@ module Data.Aeson.Types
     -- ** Generic JSON classes
     , GFromJSON(..)
     , FromArgs(..)
-    , GToJSON(..)
-    , GToEncoding(..)
+    , GToJSON
+    , GToEncoding
     , ToArgs(..)
     , Zero
     , One
@@ -79,9 +90,9 @@ module Data.Aeson.Types
     , withObject
     , withText
     , withArray
-    , withNumber
     , withScientific
     , withBool
+    , withEmbeddedJSON
 
     , pairs
     , foldable
@@ -90,21 +101,50 @@ module Data.Aeson.Types
     , (.:!)
     , (.!=)
     , object
+    , parseField
+    , parseFieldMaybe
+    , parseFieldMaybe'
+    , explicitParseField
+    , explicitParseFieldMaybe
+    , explicitParseFieldMaybe'
 
     , listEncoding
     , listValue
     , listParser
 
     -- * Generic and TH encoding configuration
-    , Options(..)
+    , Options
+
+    -- ** Options fields
+    -- $optionsFields
+    , fieldLabelModifier
+    , constructorTagModifier
+    , allNullaryToStringTag
+    , omitNothingFields
+    , sumEncoding
+    , unwrapUnaryRecords
+    , tagSingleConstructors
+
+    -- ** Options utilities
     , SumEncoding(..)
     , camelTo
     , camelTo2
     , defaultOptions
     , defaultTaggedObject
+
+    -- ** Options for object keys
+    , JSONKeyOptions
+    , keyModifier
+    , defaultJSONKeyOptions
+
+    -- * Parsing context
+    , (<?>)
+    , JSONPath
+    , JSONPathElement(..)
+    , formatPath
+    , formatRelativePath
     ) where
 
-import Prelude ()
 import Prelude.Compat
 
 import Data.Aeson.Encoding (Encoding, unsafeToEncoding, fromEncoding, Series, pairs)
@@ -116,3 +156,6 @@ import Data.Foldable (toList)
 foldable :: (Foldable t, ToJSON a) => t a -> Encoding
 foldable = toEncoding . toList
 {-# INLINE foldable #-}
+
+-- $optionsFields
+-- The functions here are in fact record fields of the 'Options' type.

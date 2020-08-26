@@ -1,11 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Encoders where
+module Encoders (module Encoders) where
 
-import Prelude ()
 import Prelude.Compat
+import Data.Text (Text)
 
 import Data.Aeson.TH
 import Data.Aeson.Types
@@ -96,6 +97,18 @@ gNullaryToEncodingObjectWithSingleField = genericToEncoding optsObjectWithSingle
 gNullaryParseJSONObjectWithSingleField :: Value -> Parser Nullary
 gNullaryParseJSONObjectWithSingleField = genericParseJSON optsObjectWithSingleField
 
+keyOptions :: JSONKeyOptions
+keyOptions = defaultJSONKeyOptions { keyModifier = ('k' :) }
+
+gNullaryToJSONKey :: Nullary -> Either String Text
+gNullaryToJSONKey x = case genericToJSONKey keyOptions of
+  ToJSONKeyText p _ -> Right (p x)
+  _ -> Left "Should be a ToJSONKeyText"
+
+gNullaryFromJSONKey :: Text -> Parser Nullary
+gNullaryFromJSONKey t = case genericFromJSONKey keyOptions of
+  FromJSONKeyTextParser p -> p t
+  _ -> fail "Not a TextParser"
 
 --------------------------------------------------------------------------------
 -- SomeType encoders/decoders
@@ -235,6 +248,33 @@ gSomeTypeToJSONOmitNothingFields = genericToJSON optsOmitNothingFields
 gSomeTypeToEncodingOmitNothingFields :: SomeType Int -> Encoding
 gSomeTypeToEncodingOmitNothingFields = genericToEncoding optsOmitNothingFields
 
+
+--------------------------------------------------------------------------------
+-- Option fields
+--------------------------------------------------------------------------------
+
+thOptionFieldToJSON :: OptionField -> Value
+thOptionFieldToJSON = $(mkToJSON optsOptionField 'OptionField)
+
+thOptionFieldToEncoding :: OptionField -> Encoding
+thOptionFieldToEncoding = $(mkToEncoding optsOptionField 'OptionField)
+
+thOptionFieldParseJSON :: Value -> Parser OptionField
+thOptionFieldParseJSON = $(mkParseJSON optsOptionField 'OptionField)
+
+gOptionFieldToJSON :: OptionField -> Value
+gOptionFieldToJSON = genericToJSON optsOptionField
+
+gOptionFieldToEncoding :: OptionField -> Encoding
+gOptionFieldToEncoding = genericToEncoding optsOptionField
+
+gOptionFieldParseJSON :: Value -> Parser OptionField
+gOptionFieldParseJSON = genericParseJSON optsOptionField
+
+thMaybeFieldToJSON :: MaybeField -> Value
+thMaybeFieldToJSON = $(mkToJSON optsOptionField 'MaybeField)
+
+
 --------------------------------------------------------------------------------
 -- IncoherentInstancesNeeded
 --------------------------------------------------------------------------------
@@ -252,6 +292,11 @@ incoherentInstancesNeededParseJSONString :: FromJSON a => Value -> Parser (Incoh
 incoherentInstancesNeededParseJSONString = case () of
   _ | True  -> $(mkParseJSON defaultOptions ''IncoherentInstancesNeeded)
     | False -> genericParseJSON defaultOptions
+
+incoherentInstancesNeededToJSON :: ToJSON a => IncoherentInstancesNeeded a -> Value
+incoherentInstancesNeededToJSON = case () of
+  _ | True  -> $(mkToJSON defaultOptions ''IncoherentInstancesNeeded)
+    | False -> genericToJSON defaultOptions
 #endif
 
 -------------------------------------------------------------------------------
@@ -341,3 +386,54 @@ thGADTToEncodingDefault = $(mkToEncoding defaultOptions ''GADT)
 
 thGADTParseJSONDefault :: Value -> Parser (GADT String)
 thGADTParseJSONDefault = $(mkParseJSON defaultOptions ''GADT)
+
+--------------------------------------------------------------------------------
+-- OneConstructor encoders/decoders
+--------------------------------------------------------------------------------
+
+thOneConstructorToJSONDefault :: OneConstructor -> Value
+thOneConstructorToJSONDefault = $(mkToJSON defaultOptions ''OneConstructor)
+
+thOneConstructorToEncodingDefault :: OneConstructor -> Encoding
+thOneConstructorToEncodingDefault = $(mkToEncoding defaultOptions ''OneConstructor)
+
+thOneConstructorParseJSONDefault :: Value -> Parser OneConstructor
+thOneConstructorParseJSONDefault = $(mkParseJSON defaultOptions ''OneConstructor)
+
+thOneConstructorToJSONTagged :: OneConstructor -> Value
+thOneConstructorToJSONTagged = $(mkToJSON optsTagSingleConstructors ''OneConstructor)
+
+thOneConstructorToEncodingTagged :: OneConstructor -> Encoding
+thOneConstructorToEncodingTagged = $(mkToEncoding optsTagSingleConstructors ''OneConstructor)
+
+thOneConstructorParseJSONTagged :: Value -> Parser OneConstructor
+thOneConstructorParseJSONTagged = $(mkParseJSON optsTagSingleConstructors ''OneConstructor)
+
+
+gOneConstructorToJSONDefault :: OneConstructor -> Value
+gOneConstructorToJSONDefault = genericToJSON defaultOptions
+
+gOneConstructorToEncodingDefault :: OneConstructor -> Encoding
+gOneConstructorToEncodingDefault = genericToEncoding defaultOptions
+
+gOneConstructorParseJSONDefault :: Value -> Parser OneConstructor
+gOneConstructorParseJSONDefault = genericParseJSON defaultOptions
+
+gOneConstructorToJSONTagged :: OneConstructor -> Value
+gOneConstructorToJSONTagged = genericToJSON optsTagSingleConstructors
+
+gOneConstructorToEncodingTagged :: OneConstructor -> Encoding
+gOneConstructorToEncodingTagged = genericToEncoding optsTagSingleConstructors
+
+gOneConstructorParseJSONTagged :: Value -> Parser OneConstructor
+gOneConstructorParseJSONTagged = genericParseJSON optsTagSingleConstructors
+
+--------------------------------------------------------------------------------
+-- Product2 encoders/decoders
+--------------------------------------------------------------------------------
+
+thProduct2ParseJSON :: Value -> Parser (Product2 Int Bool)
+thProduct2ParseJSON = $(mkParseJSON defaultOptions ''Product2)
+
+gProduct2ParseJSON :: Value -> Parser (Product2 Int Bool)
+gProduct2ParseJSON = genericParseJSON defaultOptions
