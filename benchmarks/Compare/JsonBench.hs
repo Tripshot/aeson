@@ -1,18 +1,18 @@
--- Adapted from a buffer-builder benchmark:
---
--- https://github.com/chadaustin/buffer-builder/blob/master/test.json
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- Adapted from a buffer-builder benchmark:
+--
+-- https://github.com/chadaustin/buffer-builder/blob/master/test.json
+
 module Compare.JsonBench (benchmarks) where
 
-import Prelude ()
-import Prelude.Compat
+import Prelude.Compat hiding ((<>))
 
 import Control.DeepSeq (NFData(..))
 import Criterion
@@ -20,9 +20,13 @@ import Data.Aeson ((.:))
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Typed.Common (load)
+import qualified Control.Monad.Fail as Fail
 import qualified Data.Aeson as Aeson
 import qualified Data.BufferBuilder.Json as Json
+
+#ifdef MIN_VERSION_json_builder
 import qualified Data.Json.Builder as JB
+#endif
 
 data EyeColor = Green | Blue | Brown
     deriving (Eq, Show)
@@ -65,10 +69,10 @@ instance NFData Gender where rnf !_ = ()
 instance NFData Fruit where rnf !_ = ()
 
 instance NFData Friend where
-    rnf Friend {..} = (rnf fId) `seq` (rnf fName) `seq` ()
+    rnf Friend {..} = rnf fId `seq` rnf fName
 
 instance NFData User where
-    rnf User {..} = (rnf uId) `seq` (rnf uIndex) `seq` (rnf uGuid) `seq` (rnf uIsActive) `seq` (rnf uBalance) `seq` (rnf uPicture) `seq` (rnf uAge) `seq` (rnf uEyeColor) `seq` (rnf uName) `seq` (rnf uGender) `seq` (rnf uCompany) `seq` (rnf uEmail) `seq` (rnf uPhone) `seq` (rnf uAddress) `seq` (rnf uAbout) `seq` (rnf uRegistered) `seq` (rnf uLatitude) `seq` (rnf uLongitude) `seq` (rnf uTags) `seq` (rnf uFriends) `seq` (rnf uGreeting) `seq` (rnf uFavouriteFruit) `seq` ()
+    rnf User {..} = rnf uId `seq` rnf uIndex `seq` rnf uGuid `seq` rnf uIsActive `seq` rnf uBalance `seq` rnf uPicture `seq` rnf uAge `seq` rnf uEyeColor `seq` rnf uName `seq` rnf uGender `seq` rnf uCompany `seq` rnf uEmail `seq` rnf uPhone `seq` rnf uAddress `seq` rnf uAbout `seq` rnf uRegistered `seq` rnf uLatitude `seq` rnf uLongitude `seq` rnf uTags `seq` rnf uFriends `seq` rnf uGreeting `seq` rnf uFavouriteFruit
 
 eyeColorTable :: [(Text, EyeColor)]
 eyeColorTable = [("brown", Brown), ("green", Green), ("blue", Blue)]
@@ -79,7 +83,7 @@ genderTable = [("male", Male), ("female", Female)]
 fruitTable :: [(Text, Fruit)]
 fruitTable = [("apple", Apple), ("strawberry", Strawberry), ("banana", Banana)]
 
-enumFromJson :: Monad m => String -> [(Text, enum)] -> (json -> m Text) -> json -> m enum
+enumFromJson :: Fail.MonadFail m => String -> [(Text, enum)] -> (json -> m Text) -> json -> m enum
 enumFromJson enumName table extract v = do
     s <- extract v
     case lookup s table of
@@ -269,6 +273,7 @@ instance Json.ToJson User where
             <> "greeting"# Json..=# uGreeting
             <> "favoriteFruit"# Json..=# uFavouriteFruit
 
+#ifdef MIN_VERSION_json_builder
 ---- json-builder instances ----
 
 instance JB.Value EyeColor where
@@ -320,6 +325,7 @@ instance JB.Value User where
             <> t "friends" `JB.row` uFriends
             <> t "greeting" `JB.row` uGreeting
             <> t "favoriteFruit" `JB.row` uFavouriteFruit
+#endif
 
 benchmarks :: Benchmark
 benchmarks = env (load "json-data/buffer-builder.json") $
@@ -327,5 +333,7 @@ benchmarks = env (load "json-data/buffer-builder.json") $
     bgroup "json-bench" [
       bench "aeson" $ nf Aeson.encode parsedUserList
     , bench "buffer-builder" $ nf Json.encodeJson parsedUserList
+#ifdef MIN_VERSION_json_builder
     , bench "json-builder" $ nf JB.toJsonLBS parsedUserList
+#endif
     ]

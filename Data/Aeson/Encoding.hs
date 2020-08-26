@@ -1,8 +1,10 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 -- |
 --
 -- Functions in this module return well-formed 'Encoding''.
 -- Polymorphic variants, which return @'Encoding' a@, return a textual JSON
 -- value, so it can be used as both @'Encoding'' 'Text'@ and @'Encoding' = 'Encoding'' 'Value'@.
+
 module Data.Aeson.Encoding
     (
     -- * Encoding
@@ -14,6 +16,8 @@ module Data.Aeson.Encoding
     , Series
     , pairs
     , pair
+    , pairStr
+    , pair'
     -- * Predicates
     , nullEncoding
     -- * Encoding constructors
@@ -47,6 +51,5 @@ module Data.Aeson.Encoding
     , value
     ) where
 
-import Prelude ()
 
 import Data.Aeson.Encoding.Internal

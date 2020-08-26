@@ -1,23 +1,20 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StandaloneDeriving #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Instances () where
 
-import Prelude ()
 import Prelude.Compat
 
 import Control.Applicative (empty)
 import Control.Monad
 import Data.Aeson.Types
 import Data.Function (on)
-import Data.Functor.Compose (Compose (..))
-import Data.Proxy (Proxy(..))
-import Data.Tagged (Tagged(..))
 import Data.Time (ZonedTime(..), TimeZone(..))
 import Data.Time.Clock (UTCTime(..))
 import Functions
@@ -26,22 +23,10 @@ import Types
 import qualified Data.DList as DList
 import qualified Data.HashMap.Strict as HM
 
-#if !MIN_VERSION_QuickCheck(2,9,0)
-import Control.Applicative (Const(..))
-import Data.List.NonEmpty (NonEmpty(..))
-import Data.Functor.Identity (Identity (..))
-import Data.Version
-import Test.QuickCheck (getNonNegative, listOf1, resize)
-#endif
-
 import Data.Orphans ()
 import Test.QuickCheck.Instances ()
 #if MIN_VERSION_base(4,7,0)
 import Data.Hashable.Time ()
-#endif
-
-#if !MIN_VERSION_base(4,8,0) && !MIN_VERSION_QuickCheck(2,8,3)
-import Numeric.Natural
 #endif
 
 -- "System" types.
@@ -171,50 +156,15 @@ instance Arbitrary EitherTextInt where
 instance Arbitrary (GADT String) where
     arbitrary = GADT <$> arbitrary
 
+instance Arbitrary OptionField where
+    arbitrary = OptionField <$> arbitrary
+
+
 instance ApproxEq Char where
     (=~) = (==)
 
 instance (ApproxEq a) => ApproxEq [a] where
     a =~ b = length a == length b && all (uncurry (=~)) (zip a b)
 
--- Version tags are deprecated, so we avoid using them in the Arbitrary
--- instance. However, the recommended constructor 'makeVersion' is not
--- exported by "Data.Version" until base-4.8.0.0. For previous versions,
--- a definition is given below.
-
-
-#if !MIN_VERSION_base(4,8,0) && !MIN_VERSION_QuickCheck(2,8,3)
-instance Arbitrary Natural where
-  arbitrary = fromInteger . abs <$> arbitrary
-#endif
-
-instance Arbitrary (Proxy a) where
-    arbitrary = pure Proxy
-
-instance Arbitrary b => Arbitrary (Tagged a b) where
-    arbitrary = Tagged <$> arbitrary
-
 instance Arbitrary a => Arbitrary (DList.DList a) where
     arbitrary = DList.fromList <$> arbitrary
-
-instance Arbitrary (f (g a)) => Arbitrary (Compose f g a) where
-    arbitrary = Compose <$> arbitrary
-
-#if !MIN_VERSION_QuickCheck(2,9,0)
-instance Arbitrary a => Arbitrary (Const a b) where
-    arbitrary = Const <$> arbitrary
-
-instance Arbitrary a => Arbitrary (NonEmpty a) where
-    arbitrary = (:|) <$> arbitrary <*> arbitrary
-
-instance Arbitrary Version where
-    arbitrary = makeVersion . fmap getNonNegative <$> resize 4 (listOf1 arbitrary)
-
-#if !MIN_VERSION_base(4,8,0)
-makeVersion :: [Int] -> Version
-makeVersion b = Version b []
-#endif
-
-instance Arbitrary a => Arbitrary (Identity a) where
-    arbitrary = Identity <$> arbitrary
-#endif

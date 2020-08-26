@@ -1,6 +1,7 @@
 -- Use GHC generics to automatically generate good instances.
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE PackageImports #-}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Twitter.Generic
@@ -11,40 +12,33 @@ module Twitter.Generic
     , Result(..)
     ) where
 
-import Prelude ()
-import Prelude.Compat
+import Prelude.Compat ()
 
 import Twitter
+import Twitter.Options
 
-#ifndef HAS_BOTH_AESON_AND_BENCHMARKS
-import Data.Aeson (ToJSON, FromJSON)
-#else
-import "aeson" Data.Aeson (ToJSON, FromJSON)
-import qualified "aeson-benchmarks" Data.Aeson as B
-#endif
+import Data.Aeson (ToJSON (..), FromJSON (..), genericToJSON, genericToEncoding, genericParseJSON)
 
-instance ToJSON Metadata
-instance FromJSON Metadata
+instance ToJSON Metadata where
+    toJSON = genericToJSON twitterOptions
+    toEncoding = genericToEncoding twitterOptions
+instance FromJSON Metadata where
+    parseJSON = genericParseJSON twitterOptions
 
-instance ToJSON Geo
-instance FromJSON Geo
+instance ToJSON Geo where
+    toJSON = genericToJSON twitterOptions
+    toEncoding = genericToEncoding twitterOptions
+instance FromJSON Geo where
+    parseJSON = genericParseJSON twitterOptions
 
-instance ToJSON Story
-instance FromJSON Story
+instance ToJSON Story where
+    toJSON = genericToJSON twitterOptions
+    toEncoding = genericToEncoding twitterOptions
+instance FromJSON Story where
+    parseJSON = genericParseJSON twitterOptions
 
-instance ToJSON Result
-instance FromJSON Result
-
-#ifdef HAS_BOTH_AESON_AND_BENCHMARKS
-instance B.ToJSON Metadata
-instance B.FromJSON Metadata
-
-instance B.ToJSON Geo
-instance B.FromJSON Geo
-
-instance B.ToJSON Story
-instance B.FromJSON Story
-
-instance B.ToJSON Result
-instance B.FromJSON Result
-#endif
+instance ToJSON Result where
+    toJSON = genericToJSON twitterOptions
+    toEncoding = genericToEncoding twitterOptions
+instance FromJSON Result where
+    parseJSON = genericParseJSON twitterOptions
